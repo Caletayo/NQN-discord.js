@@ -1,79 +1,157 @@
-const { Client, Discord } = require("discord.js");
-const client = new Client({
-  intents: [
-      "GUILDS",
-      "GUILD_MEMBERS",
-      "GUILD_BANS",
-      "GUILD_EMOJIS",
-      "GUILD_INTEGRATIONS",
-      "GUILD_WEBHOOKS",
-      "GUILD_INVITES",
-      "GUILD_VOICE_STATES",
-      "GUILD_PRESENCES",
-      "GUILD_MESSAGES",
-      "GUILD_MESSAGE_REACTIONS",
-      "GUILD_MESSAGE_TYPING",
-      "DIRECT_MESSAGES",
-      "DIRECT_MESSAGE_REACTIONS",
-      "DIRECT_MESSAGE_TYPING",
+/**********************************************************
+ * @INFO  [TABLE OF CONTENTS]
+ * 1  Import_Modules
+   * 1.1 Validating script for advertisement
+ * 2  CREATE_THE_DISCORD_BOT_CLIENT
+ * 3  Load_Discord_Buttons_and_Discord_Menus
+ * 4  Create_the_client.memer
+ * 5  create_the_languages_objects
+ * 6  Raise_the_Max_Listeners
+ * 7  Define_the_Client_Advertisments
+ * 8  LOAD_the_BOT_Functions
+ * 9  Login_to_the_Bot
+ * 
+ *   BOT CODED BY: TOMato6966 | https://milrato.eu
+ *********************************************************/
+
+
+/**
+ * @param {*} INFO: you can use config.token and all other sensitve api keys, with the exact same key in process.env!
+*/
+
+
+/**********************************************************
+ * @param {1} Import_Modules for this FIle
+ *********************************************************/
+const Discord = require("discord.js");
+const colors = require("colors");
+const enmap = require("enmap"); 
+const fs = require("fs"); 
+const emojis = require("./botconfig/emojis.json");
+const config = require("./botconfig/config.json");
+const advertisement = require("./botconfig/advertisement.json");
+const { delay } = require("./handlers/functions");
+const Meme = require("memer-api");
+require('dotenv').config();
+
+
+/**********************************************************
+ * @param {2} CREATE_THE_DISCORD_BOT_CLIENT with some default settings
+ *********************************************************/
+const client = new Discord.Client({
+  fetchAllMembers: false,
+  restTimeOffset: 0,
+  failIfNotExists: false,
+  shards: "auto",
+  allowedMentions: {
+    parse: ["roles", "users"],
+    repliedUser: false,
+  },
+  partials: ['MESSAGE', 'CHANNEL', 'REACTION', 'GUILD_MEMBER', 'USER'],
+  intents: [ Discord.Intents.FLAGS.GUILDS,
+    Discord.Intents.FLAGS.GUILD_MEMBERS,
+    Discord.Intents.FLAGS.GUILD_BANS,
+    Discord.Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
+    Discord.Intents.FLAGS.GUILD_INTEGRATIONS,
+    Discord.Intents.FLAGS.GUILD_WEBHOOKS,
+    Discord.Intents.FLAGS.GUILD_INVITES,
+    Discord.Intents.FLAGS.GUILD_VOICE_STATES,
+    Discord.Intents.FLAGS.GUILD_PRESENCES,
+    Discord.Intents.FLAGS.GUILD_MESSAGES,
+    Discord.Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
+    //Discord.Intents.FLAGS.GUILD_MESSAGE_TYPING,
+    Discord.Intents.FLAGS.DIRECT_MESSAGES,
+    Discord.Intents.FLAGS.DIRECT_MESSAGE_REACTIONS,
+    //Discord.Intents.FLAGS.DIRECT_MESSAGE_TYPING
   ],
-});
-const { token } = require("./config.json")
-
-client.on("ready", () => {
-  console.log("[--------------------- R E A D Y ---------------------]");
-  client.user.setActivity("CODED BY CORTEX CRAFT");
-})
-
-client.on("messageCreate", async (messageCreate) => {
-  if (messageCreate.author.bot) return;
-  let msg = messageCreate.content;
-
-  let emojis = msg.match(/(?<=:)([^:\s]+)(?=:)/g)
-  if (!emojis) return;
-  emojis.forEach(m => {
-    let emoji = client.emojis.cache.find(x => x.name === m)
-    if (!emoji) return;
-    let temp = emoji.toString()
-    if (new RegExp(temp, "g").test(msg)) msg = msg.replace(new RegExp(temp, "g"), emoji.toString())
-    else msg = msg.replace(new RegExp(":" + m + ":", "g"), emoji.toString());
-  })
-
-  if (msg === messageCreate.content) return;
-
-  let webhook = await messageCreate.channel.fetchWebhooks();
-  let number = randomNumber(1, 2);
-  webhook = webhook.find(x => x.name === "NQN" + number);
-
-  if (!webhook) {
-    webhook = await messageCreate.channel.createWebhook(`NQN` + number, {
-      avatar: client.user.displayAvatarURL({ dynamic: true })
-    });
+  presence: {
+    activities: [{name: `${config.status.text}`.replace("{prefix}", config.prefix), type: config.status.type, url: config.status.url}],
+    status: "online"
   }
-
-  await webhook.edit({
-    name: messageCreate.member.nickname ? messageCreate.member.nickname : messageCreate.author.username,
-    avatar: messageCreate.author.displayAvatarURL({ dynamic: true })
-  })
-
-  messageCreate.delete().catch(err => { })
-  webhook.send(msg).catch(err => { })
-
-  await webhook.edit({
-    name: `NQN` + number,
-    avatar: client.user.displayAvatarURL({ dynamic: true })
-  })
-
-
-})
+});
 
 
 
-client.login(token);
-//--------------------------------------------------- F U N C T I O N S --------------------------------------
+/**********************************************************
+ * @param {4} Create_the_client.memer property from Tomato's Api 
+ *********************************************************/
+client.memer = new Meme(process.env.memer_api || config.memer_api); // GET a TOKEN HERE: https://discord.gg/Mc2FudJkgP
 
-function randomNumber(min, max) {
-  min = Math.ceil(min);
-  max = Math.floor(max);
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-} 
+
+
+/**********************************************************
+ * @param {5} create_the_languages_objects to select via CODE
+ *********************************************************/
+client.la = { }
+var langs = fs.readdirSync("./languages")
+for(const lang of langs.filter(file => file.endsWith(".json"))){
+  client.la[`${lang.split(".json").join("")}`] = require(`./languages/${lang}`)
+}
+Object.freeze(client.la)
+//function "handlemsg(txt, options? = {})" is in /handlers/functions 
+
+
+
+/**********************************************************
+ * @param {6} Raise_the_Max_Listeners to 0 (default 10)
+ *********************************************************/
+client.setMaxListeners(0);
+require('events').defaultMaxListeners = 0;
+
+
+
+/**********************************************************
+ * @param {7} Define_the_Client_Advertisments from the Config File
+ *********************************************************/
+client.ad = {
+  enabled: advertisement.adenabled,
+  statusad: advertisement.statusad,
+  spacedot: advertisement.spacedot,
+  textad: advertisement.textad
+}
+
+
+
+/**********************************************************
+ * @param {8} LOAD_the_BOT_Functions 
+ *********************************************************/
+//those are must haves, they load the dbs, events and commands and important other stuff
+function requirehandlers(){
+  ["extraevents", "loaddb", "clientvariables", "command", "events", "erelahandler", "slashCommands"].forEach(handler => {
+    try{ require(`./handlers/${handler}`)(client); }catch (e){ console.log(e.stack ? String(e.stack).grey : String(e).grey) }
+  });
+  ["twitterfeed", /*"twitterfeed2",*/ "livelog", "youtube", "tiktok"].forEach(handler=>{
+    try{ require(`./social_log/${handler}`)(client); }catch (e){ console.log(e.stack ? String(e.stack).grey : String(e).grey) }
+  });
+  [ "logger", "anti_nuke", "antidiscord", "antilinks","anticaps", "antispam", "blacklist", "keyword", "antimention", "autobackup",
+    
+    "apply", "ticket", "ticketevent",
+    "roster", "joinvc", "epicgamesverification", "boostlog",
+    
+    "welcome", "leave", "ghost_ping_detector", "antiselfbot",
+
+    "jointocreate", "reactionrole", "ranking", "timedmessages",
+    
+    "membercount", "autoembed", "suggest", "validcode", "dailyfact", "autonsfw",
+    "aichat", "mute", "automeme", "counter"].forEach(handler => {
+    try{ require(`./handlers/${handler}`)(client); }catch (e){ console.log(e.stack ? String(e.stack).grey : String(e).grey) }
+  });
+}requirehandlers();
+
+//24/7
+
+/**********************************************************
+ * @param {9} Login_to_the_Bot
+ *********************************************************/
+client.login(process.env.token || config.token);
+
+
+/**********************************************************
+ * @INFO
+ * Bot Coded by Tomato#6966 | https://discord.gg/milrato
+ * @INFO
+ * Work for Milrato Development | https://milrato.eu
+ * @INFO
+ * Please mention him / Milrato Development, when using this Code!
+ * @INFO
+ *********************************************************/
